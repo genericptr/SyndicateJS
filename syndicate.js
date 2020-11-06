@@ -168,7 +168,7 @@ export class SyndicateGame extends Game {
 	}
 
 	async setup(mapFile, tilemap) {
-
+		
 		// load map from JSON
 		await fetch('./assets/'+mapFile)
 		  .then(response => response.json())
