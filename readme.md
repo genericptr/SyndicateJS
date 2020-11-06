@@ -5,4 +5,4 @@ Assets generated from [libSyndicate](http://icculus.org/libsyndicate/) and origi
 
 ![](/docs/screenshot.png)
 
-![Try Demo](https://genericptr.github.io/SyndicateJS/)
+[Try Demo](https://genericptr.github.io/SyndicateJS/)
