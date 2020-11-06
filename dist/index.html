@@ -28,6 +28,11 @@
 		let game = null;
 		let ctx = document.getElementById('ctx').getContext('2d');
 
+		function maxLevelChanged(input) {
+			if (game) 
+				game.maxLevel = input.target.value;
+		}
+
 		function loadMap() {
 			let map = document.querySelector('#map');
 			let tileset = document.querySelector('#tileset');
@@ -40,6 +45,7 @@
 		}
 
 		document.querySelector('#load-map').addEventListener('click', loadMap);
+		document.querySelector('#max-level').addEventListener('input', maxLevelChanged);
 
 		loadMap();
 	</script>
@@ -53,7 +59,7 @@
 	</div>
 
 	<!-- game options -->
-	<form">
+	<form>
 		<div>
 			<label>Map:</label>
 			<select id="map">
@@ -118,6 +124,10 @@
 				<option value="tiles_3.png">Tileset 3</option>
 				<option value="tiles_4.png">Tileset 4</option>
 			</select>	
+		</div>
+		<div>
+			<label>Max Level:</label>
+			<input type="range" min="1" max="12" value="12" class="slider" id="max-level">
 		</div>
 		<button id="load-map">Load</button>
 	</form>

@@ -121,7 +121,7 @@ export class SyndicateGame extends Game {
 	drawMap(map) {
 		let width = 128;
 		let height = 96;
-		let depth = 12;   // TODO: search max z from tiles
+		let depth = this.maxLevel;
 
 		let tileOrigin = viewToWorld(Camera.origin.x, Camera.origin.y);
 		tileOrigin = worldToTile(tileOrigin.x, tileOrigin.y, 0);
@@ -158,6 +158,15 @@ export class SyndicateGame extends Game {
 		console.log(s);
 	}
 
+	get maxLevel() {
+		return this._maxLevel;
+	}
+
+	set maxLevel(newValue) {
+		this._maxLevel = newValue;
+		this.processFrame();
+	}
+
 	async setup(mapFile, tilemap) {
 
 		// load map from JSON
@@ -192,6 +201,8 @@ export class SyndicateGame extends Game {
 
 		// don't animate since we update with the array keys
 		this.animationEnabled = false;
+
+		this.maxLevel = 12;
 
 		this.start();
 	}
