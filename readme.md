@@ -4,3 +4,5 @@
 Assets generated from [libSyndicate](http://icculus.org/libsyndicate/) and original DOS data files.
 
 ![](/docs/screenshot.png)
+
+![Try Demo](https://genericptr.github.io/SyndicateJS/)
