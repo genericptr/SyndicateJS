@@ -29,6 +29,7 @@
 		let ctx = document.getElementById('ctx').getContext('2d');
 
 		function maxLevelChanged(input) {
+			console.log('max level changed: '+input.target.value);
 			if (game) 
 				game.maxLevel = input.target.value;
 		}
