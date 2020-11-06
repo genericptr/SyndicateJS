@@ -161,7 +161,7 @@ export class SyndicateGame extends Game {
 	async setup(mapFile, tilemap) {
 
 		// load map from JSON
-		await fetch('/assets/'+mapFile)
+		await fetch('./assets/'+mapFile)
 		  .then(response => response.json())
 		  .then(json => {
 		  	console.log('loaded map');
@@ -177,7 +177,7 @@ export class SyndicateGame extends Game {
 
 
 		// load tile map
-		this.tiles = new TileAtlas(await Game.loadImage('/assets/'+tilemap), 64, 48);
+		this.tiles = new TileAtlas(await Game.loadImage('./assets/'+tilemap), 64, 48);
 
 		// setup world
 		World.screenRect = new Rect(0, 0, ctx.width, ctx.height);
