@@ -1,3 +1,9 @@
+/**
+ * world.js
+ * This file is part of SyndicateJS
+ * @license MIT
+ * @author Ryan Joseph (November 2020)
+ */
 
 import { V2, V3, Rect } from './vectorMath.js';
 
@@ -16,11 +22,54 @@ export let World = {
 // Camera
 
 export let Camera = {
+  get viewOffset() {
+    return new V2(this.origin.x - (World.screenWidth / 2), this.origin.y);
+  },
+  applyViewTransform(pt) {
+    return pt.sub(this.viewOffset);
+  },
   origin: new V2(0, 0),
   zoom: 1.0
 }
 
-// http://clintbellanger.net/articles/isometric_math/
+/* 
+function ScreenToView(point: TVec2): TVec2;
+begin
+  result := point / camera.zoom;
+  result += camera.ViewOffset / camera.zoom;
+end;
+
+function ViewToScreen(point: TVec2): TVec2;
+begin
+  result := point;
+  result *= camera.zoom;
+  result -= camera.ViewOffset;
+end;
+
+function ViewToScreen(rect: TRect): TRect;
+begin
+  result := rect;
+  result.origin *= camera.zoom;
+  result.origin -= camera.ViewOffset;
+  result.size *= camera.Zoom;
+end;
+*/
+
+function viewToScreen(x, y) {
+  let viewOffset = Camera.viewOffset;
+  return new V2(
+      (x * camera.zoom) - viewOffset.x, 
+      (y * camera.zoom) - viewOffset.y
+  );
+}
+
+function screenToView(x, y) {
+  let result = new V2(x / Camera.zoom, y / Camera.zoom);
+  let viewOffset = Camera.viewOffset;
+  result.x += viewOffset.x / Camera.zoom;
+  result.y += viewOffset.y / Camera.zoom;
+  return result;
+}
 
 function worldToTile(x, y, z) {
   let result = new V3(
@@ -39,6 +88,8 @@ function tileToWorld(x, y, z) {
     );
   return result;
 }
+
+// http://clintbellanger.net/articles/isometric_math/
 
 function viewToWorld(x, y) {
   // offset view point to top-left of tile
@@ -83,12 +134,6 @@ function boundingViewRect(x, y, z, width, height) {
   let pt = worldToView(x, y, z);
   pt.x -= width / 2;
   pt.y -= height - (width / 2);
-
-  // apply the camera transform
-  // maybe not the best place but it's here for now
-  pt.x -= Camera.origin.x - (World.screenWidth / 2);
-  pt.y -= Camera.origin.y + 0;
-
   return new Rect(pt.x, pt.y, width, height);
 }
 
@@ -96,5 +141,6 @@ export {
   worldToTile,
   viewToWorld,
   worldToView,
-  boundingViewRect
+  boundingViewRect,
+  screenToView
 }

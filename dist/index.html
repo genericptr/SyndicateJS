@@ -1,3 +1,11 @@
+
+<!-- 
+ * index.html
+ * This file is part of SyndicateJS
+ * @license MIT
+ * @author Ryan Joseph (November 2020)
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +16,7 @@
 		body {
 			font-family: 'Courier New', Courier, monospace
 		}
-		#ctx {
+		.canvas-fixed {
 			position: absolute;
 			top: 0;
 			bottom: 0;
@@ -17,16 +25,28 @@
 			margin:auto;
 			border: 1px solid #2d2d2d;
 		}
+		.canvas-full-screen {
+			border: 1px solid #2d2d2d;
+		}
 		.row {
 			display: flex;
 		}
 	</style>
+	<!-- https://github.com/timohausmann/quadtree-js/ -->
+	<script src="quadtree.js"></script>
 	<script type="module">
 		console.log('loaded main script');
 		import { SyndicateGame } from './syndicate.js';
 
 		let game = null;
-		let ctx = document.getElementById('ctx').getContext('2d');
+		let canvas = document.getElementById('ctx');
+		let context = canvas.getContext('2d');
+
+		var body = document.body,
+		    html = document.documentElement;
+
+		canvas.width = html.clientWidth;
+		canvas.height = 800;
 
 		function maxLevelChanged(input) {
 			console.log('max level changed: '+input.target.value);
@@ -41,7 +61,7 @@
 
 			if (game) game.unload();
 
-			game = new SyndicateGame(ctx);
+			game = new SyndicateGame(context);
 			game.setup('maps/'+map.options[map.selectedIndex].textContent+'.json', tileset.options[tileset.selectedIndex].value);
 		}
 
@@ -134,6 +154,6 @@
 	</div>
 	
 	<!-- game canvas -->
-	<canvas id="ctx" width="512" height="512"></canvas>
+	<canvas id="ctx" class="canvas-full-screen" width="512" height="512"></canvas>
 </body>
 </html>
