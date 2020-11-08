@@ -63,6 +63,15 @@ export class Rect {
   get maxX() { return this.x + this.width; }
   get maxY() { return this.y + this.height; }
 
+  floor() {
+    return new Rect(
+      Math.floor(this.x),
+      Math.floor(this.y),
+      Math.floor(this.width),
+      Math.floor(this.height),
+    );
+  }
+
   interesects(rect) {
     return ((this.minX < rect.maxX) && 
             (this.maxX > rect.minX) && 

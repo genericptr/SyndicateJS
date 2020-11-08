@@ -39,9 +39,28 @@ export class Game {
 			this.onMousedown(x, y);
 		}
 
-	_mainLoop(elapsedTime) {
+	_onTouchstart(event) {
+		console.log(event);
+		let r = this.context.canvas.getBoundingClientRect();
+		let x = event.clientX - r.x;
+		let y = event.clientY - r.y;
+		this.onTouchstart(x, y);
+		if (this.simulateMouseEvents) {
+			this.onMousedown(x, y)
+		}
+	}
 
-		if (this.animationEnabled)
+	_onTouchend(event) {
+		let r = this.context.canvas.getBoundingClientRect();
+		let x = event.clientX - r.x;
+		let y = event.clientY - r.y;
+		this.onTouchend(x, y);
+	}
+
+	_mainLoop(elapsedTime, once) {
+
+		// request another frame
+		if (!once && this.animationEnabled)
 			window.requestAnimationFrame((t) => { this._mainLoop(t); });
 
 		// compute delta time in seconds -- also cap it
@@ -67,24 +86,25 @@ export class Game {
 		this.keys[keyCode] = false;
 	};
 
+	// public event stubs
 	onMousemove(x, y) { }
 	onMousedown(x, y) { }
+	onTouchstart(x, y) { }
+	onTouchend(x, y) { }
 	onKeyPressed(keyCode) { }
 
 	isKeyDown(keyCode) { return this.keys[keyCode]; }
 
-	update(deltaTime) {
-	};
+	update(deltaTime) { };
 
-	render() {
-	};
+	render() { };
 
 	processFrame() {
-		this._mainLoop(0);
+		this._mainLoop(0, true);
 	}
 
 	start() {
-		this.processFrame();
+		this._mainLoop(0, false);
 	};
 
 	unload() {
@@ -92,6 +112,8 @@ export class Game {
 		window.removeEventListener('keyup', this.eventListeners.keyup);
 		window.removeEventListener('mousemove', this.eventListeners.mousemove);
 		window.removeEventListener('mousedown', this.eventListeners.mousedown);
+		window.removeEventListener('touchstart', this.eventListeners.touchstart);
+		window.removeEventListener('touchend', this.eventListeners.touchend);
 	};
 
 	constructor(context) {
@@ -105,6 +127,7 @@ export class Game {
 
 		this.context = context;
 		this.animationEnabled = true;
+		this.simulateMouseEvents = true;
 
 		// keep the event listeners so they can be removed later
 		this.eventListeners = {
@@ -112,10 +135,18 @@ export class Game {
 			keyup: this.onKeyUp.bind(this),
 			mousemove: this._onMousemove.bind(this),
 			mousedown: this._onMousedown.bind(this),
+			touchstart: this._onTouchstart.bind(this),
+			touchend: this._onTouchend.bind(this),
 		}
+
+		// el.addEventListener("touchstart", handleStart, false);
+		// el.addEventListener("touchend", handleEnd, false);
+
 		window.addEventListener('keydown', this.eventListeners.keydown);
 		window.addEventListener('keyup', this.eventListeners.keyup);
 		window.addEventListener('mousemove', this.eventListeners.mousemove);
 		window.addEventListener('mousedown', this.eventListeners.mousedown);
+		window.addEventListener('touchstart', this.eventListeners.touchstart);
+		window.addEventListener('touchend', this.eventListeners.touchend);
 	}
 }

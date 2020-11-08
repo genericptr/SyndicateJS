@@ -23,37 +23,17 @@ export let World = {
 
 export let Camera = {
   get viewOffset() {
-    return new V2(this.origin.x - (World.screenWidth / 2), this.origin.y);
+    return new V2(this.origin.x - ((World.screenWidth / Camera.zoom) / 2), this.origin.y);
   },
   applyViewTransform(pt) {
-    return pt.sub(this.viewOffset);
+    pt = pt.sub(this.viewOffset);
+    pt.x *= Camera.zoom;
+    pt.y *= Camera.zoom;
+    return pt;
   },
   origin: new V2(0, 0),
   zoom: 1.0
 }
-
-/* 
-function ScreenToView(point: TVec2): TVec2;
-begin
-  result := point / camera.zoom;
-  result += camera.ViewOffset / camera.zoom;
-end;
-
-function ViewToScreen(point: TVec2): TVec2;
-begin
-  result := point;
-  result *= camera.zoom;
-  result -= camera.ViewOffset;
-end;
-
-function ViewToScreen(rect: TRect): TRect;
-begin
-  result := rect;
-  result.origin *= camera.zoom;
-  result.origin -= camera.ViewOffset;
-  result.size *= camera.Zoom;
-end;
-*/
 
 function viewToScreen(x, y) {
   let viewOffset = Camera.viewOffset;
@@ -64,11 +44,7 @@ function viewToScreen(x, y) {
 }
 
 function screenToView(x, y) {
-  let result = new V2(x / Camera.zoom, y / Camera.zoom);
-  let viewOffset = Camera.viewOffset;
-  result.x += viewOffset.x / Camera.zoom;
-  result.y += viewOffset.y / Camera.zoom;
-  return result;
+  return new V2((x / Camera.zoom) + Camera.viewOffset.x, (y / Camera.zoom) + Camera.viewOffset.y);
 }
 
 function worldToTile(x, y, z) {
