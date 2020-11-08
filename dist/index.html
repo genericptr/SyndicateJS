@@ -13,23 +13,41 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Syndicate Tile Rendering (DOS 1993)</title>
 	<style>
-		body {
-			font-family: 'Courier New', Courier, monospace
+		html, body {
+			font-size: 14px;
+			font-family: 'Andale Mono', 'Courier New', Courier, monospace;
+			margin: 0px;
+			height: 100%;
 		}
-		.canvas-fixed {
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			left: 0;
-			right: 0;
-			margin:auto;
-			border: 1px solid #2d2d2d;
+		section {
+			flex-grow: 1;
 		}
-		.canvas-full-screen {
-			border: 1px solid #2d2d2d;
-		}
-		.row {
+		main {
+			width:  100%;
 			display: flex;
+			flex-direction: column;
+		}
+		nav {
+			display: flex;
+			flex-direction: row;
+			padding: 10px;
+			background: rgb(221, 221, 221);
+			/*border: 1px solid blue;*/
+		}
+		canvas {
+			width:  100%;
+			height:  100%;
+			/*border: 1px solid red;*/
+		}
+		.nav-header {
+			display: flex;
+			flex-direction: row;
+			/*border: 1px solid yellow;*/
+		}
+		.header-item {
+			margin: 0;
+			flex-grow: 1;
+			/*border: 1px solid green;*/
 		}
 	</style>
 	<!-- https://github.com/timohausmann/quadtree-js/ -->
@@ -54,6 +72,18 @@
 				game.maxLevel = input.target.value;
 		}
 
+		function zoomCheckboxChanged(input) {
+			console.log(input.target);
+			if (game) {
+				console.log(input.target.checked);
+				if (input.target.checked) {
+					game.zoomLevel = 2.0;
+				} else {
+					game.zoomLevel = 1.0;
+				}
+			}
+		}
+
 		function loadMap() {
 			let map = document.querySelector('#map');
 			let tileset = document.querySelector('#tileset');
@@ -65,95 +95,108 @@
 			game.setup('maps/'+map.options[map.selectedIndex].textContent+'.json', tileset.options[tileset.selectedIndex].value);
 		}
 
+		// hook up event listeners
 		document.querySelector('#load-map').addEventListener('click', loadMap);
 		document.querySelector('#max-level').addEventListener('input', maxLevelChanged);
-
+		
+		let zoomCheckbox = document.querySelector('#zoom-2x');
+		zoomCheckbox.addEventListener('change', zoomCheckboxChanged);
+		zoomCheckbox.checked = true;
+		
 		loadMap();
 	</script>
 </head>
 <body>
-	<p>Use W,A,S,D keys to scroll map</p>
-
-	<!-- render stats -->
-	<div>
-		<p id="render-stats">{ render stats }</p>
-	</div>
-
-	<!-- game options -->
-	<div>
-		<div>
-			<label>Map:</label>
-			<select id="map">
-				<option>Western Europe</option>
-				<option>Far East</option>
-				<option>Mongolia</option>
-				<option>Iran</option>
-				<option>California</option>
-				<option>Iraq</option>
-				<option>India</option>
-				<option>Northeast Territories</option>
-				<option>Kazakhstan</option>
-				<option>Eastern Europe</option>
-				<option>Western Australia</option>
-				<option>Kanchatka</option>
-				<option>Mozambique</option>
-				<option>Peru</option>
-				<option>Central Europe</option>
-				<option>Greenland</option>
-				<option>Alaska</option>
-				<option>Urals</option>
-				<option>Northern Territories</option>
-				<option>Scandinavia</option>
-				<option>Yukon</option>
-				<option>Siberia</option>
-				<option>Rockies</option>
-				<option>Southern States</option>
-				<option>Indonesia</option>
-				<option>Mexico</option>
-				<option>Zaire</option>
-				<option>Algeria</option>
-				<option>New England</option>
-				<option>Argentine</option>
-				<option>South Africa</option>
-				<option>Colorado</option>
-				<option>Sudan</option>
-				<option>Mid West</option>
-				<option>Lybia</option>
-				<option>Venezuela</option>
-				<option>Atlantic Accelerator</option>
-				<option>Arabia</option>
-				<option>Northwest Territories</option>
-				<option>Kenya</option>
-				<option>Mauritania</option>
-				<option>Newfoundland</option>
-				<option>New South Wales</option>
-				<option>Colombia</option>
-				<option>Nigeria</option>
-				<option>Brazil</option>
-				<option>Uruguay</option>
-				<option>Pacific Rim</option>
-				<option>Paraguay</option>
-				<option>China</option>
-			</select>	
-		</div>
-		<div>
-			<label>Tileset:</label>
-			<select id="tileset">
-				<option value="default">Default</option>
-				<option value="tiles_1.png">Tileset 1</option>
-				<option value="tiles_2.png">Tileset 2</option>
-				<option value="tiles_3.png">Tileset 3</option>
-				<option value="tiles_4.png">Tileset 4</option>
-			</select>	
-		</div>
-		<div>
-			<label>Max Level:</label>
-			<input type="range" min="1" max="12" value="12" class="slider" id="max-level">
-		</div>
-		<button id="load-map">Load</button>
-	</div>
-	
-	<!-- game canvas -->
-	<canvas id="ctx" class="canvas-full-screen" width="512" height="512"></canvas>
+	<main>
+		<nav>
+			<section>
+				<nav class="nav-header">
+					<p class="header-item">Use W,A,S,D keys to scroll map or click on edges.</p>
+					<p class="header-item" id="render-stats">{ render stats }</p>
+				</nav>
+				<table>
+					<tr columns="2">
+						<td>Map:</td>
+						<td>
+							<select id="map">
+								<option>Western Europe</option>
+								<option>Far East</option>
+								<option>Mongolia</option>
+								<option>Iran</option>
+								<option>California</option>
+								<option>Iraq</option>
+								<option>India</option>
+								<option>Northeast Territories</option>
+								<option>Kazakhstan</option>
+								<option>Eastern Europe</option>
+								<option>Western Australia</option>
+								<option>Kanchatka</option>
+								<option>Mozambique</option>
+								<option>Peru</option>
+								<option>Central Europe</option>
+								<option>Greenland</option>
+								<option>Alaska</option>
+								<option>Urals</option>
+								<option>Northern Territories</option>
+								<option>Scandinavia</option>
+								<option>Yukon</option>
+								<option>Siberia</option>
+								<option>Rockies</option>
+								<option>Southern States</option>
+								<option>Indonesia</option>
+								<option>Mexico</option>
+								<option>Zaire</option>
+								<option>Algeria</option>
+								<option>New England</option>
+								<option>Argentine</option>
+								<option>South Africa</option>
+								<option>Colorado</option>
+								<option>Sudan</option>
+								<option>Mid West</option>
+								<option>Lybia</option>
+								<option>Venezuela</option>
+								<option>Atlantic Accelerator</option>
+								<option>Arabia</option>
+								<option>Northwest Territories</option>
+								<option>Kenya</option>
+								<option>Mauritania</option>
+								<option>Newfoundland</option>
+								<option>New South Wales</option>
+								<option>Colombia</option>
+								<option>Nigeria</option>
+								<option>Brazil</option>
+								<option>Uruguay</option>
+								<option>Pacific Rim</option>
+								<option>Paraguay</option>
+								<option>China</option>
+							</select>
+							<button id="load-map">Load</button>
+						</td>
+					</tr>
+					<tr>
+						<td>Tileset:</td>
+						<td>
+							<select id="tileset">
+								<option value="default">Default</option>
+								<option value="tiles_1.png">Tileset 1</option>
+								<option value="tiles_2.png">Tileset 2</option>
+								<option value="tiles_3.png">Tileset 3</option>
+								<option value="tiles_4.png">Tileset 4</option>
+							</select>	
+						</td>
+					</tr>
+					<tr>
+						<td>Z:</td>
+						<td>
+							<input type="range" min="1" max="12" value="12" class="slider" id="max-level">
+							<input type="checkbox" id="zoom-2x">
+							<label for="zoom-2x"> 2x</label><br>
+						</td>
+					</tr>
+				</table>
+			</section>
+		</nav>
+		<canvas id="ctx" class="canvas"></canvas>
+	</main>
 </body>
 </html>

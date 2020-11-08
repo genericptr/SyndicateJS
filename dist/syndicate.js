@@ -158,6 +158,31 @@ export class SyndicateGame extends Game {
 	}
 
 	onMousedown(x, y) {
+
+
+		// scroll by edge
+		if (y < 32 && y >= 0) {
+			console.log('move up');
+			Camera.origin.y -= World.tileDim;
+			this.processFrame();
+			return
+		} else if (x < 32 && x >= 0) {
+			console.log('move left');
+			Camera.origin.x -= World.tileDim;
+			this.processFrame();
+			return
+		} else if (x > this.context.canvas.width - 32 && x <= this.context.canvas.width) {
+			console.log('move right');
+			Camera.origin.x += World.tileDim;
+			this.processFrame();
+			return
+		} else if (y > this.context.canvas.height - 32 && x <= this.context.canvas.height) {
+			console.log('move down');
+			Camera.origin.y += World.tileDim;
+			this.processFrame();
+			return
+		}
+
 		let at = screenToView(x, y);
 		let mouseViewRect = new Rect(at.x, at.y, 1, 1);
 
@@ -167,6 +192,12 @@ export class SyndicateGame extends Game {
 			let hits = [];
 			for (var i = 0; i < result.length; i++) {
 				let node = result[i];
+				
+				// only consider tiles that were rendered on last pass
+				// we do this so we don't capture tiles that were drawn
+				// but now occluded by clipping
+				if (node.tile.renderPass != this.renderPass) continue;
+
 				let r = new Rect(node.x, node.y, node.width, node.height);
 				if (r.interesects(mouseViewRect)) {
 					hits.push(node);
@@ -219,6 +250,7 @@ export class SyndicateGame extends Game {
 	render() {
 		let r = this.context.canvas.getBoundingClientRect();
 		this.context.clearRect(0, 0, r.width, r.height);
+		this.renderPass += 1;
 		this.drawMap(this.map);
 	};
 
@@ -229,9 +261,13 @@ export class SyndicateGame extends Game {
 		let viewRect = boundingViewRect(worldPoint.x, worldPoint.y, worldPoint.z, atlas.tileWidth, atlas.tileHeight);
 	 
 	  // apply the camera transform
-	  // TODO: clean this up. so wasteful...
+	  // TODO: make applyViewTransform take a rect
 	  let origin = Camera.applyViewTransform(new V2(viewRect.x, viewRect.y));
-	  let screenRect = new Rect(origin.x, origin.y, viewRect.width, viewRect.height);
+	  let screenRect = new Rect(origin.x, origin.y, viewRect.width * Camera.zoom, viewRect.height * Camera.zoom);
+	  
+	  // canvas has drawing artifacts if the rect is fractional
+	  if (Camera.zoom != 0)
+		  screenRect = screenRect.floor();
 
 		// check if rect is actually in screen bounds
 		if (screenRect.interesects(World.screenRect)) {
@@ -257,10 +293,6 @@ export class SyndicateGame extends Game {
 											screenRect.x, screenRect.y, screenRect.width, screenRect.height);
 				context.globalCompositeOperation = "source-over";
 				context.globalAlpha = 1;
-				// context.strokeStyle = 'red';
-				// context.lineWidth = 1;
-				// context.imageSmoothingEnabled = false;
-				// context.strokeRect(screenRect.x, screenRect.y, screenRect.width, screenRect.height);
 			}
 
 			return viewRect;
@@ -275,16 +307,18 @@ export class SyndicateGame extends Game {
 		let tileOrigin = viewToWorld(Camera.origin.x, Camera.origin.y);
 		tileOrigin = worldToTile(tileOrigin.x, tileOrigin.y, 0);
 		tileOrigin = tileOrigin.floor();
+
 		// clip the top bounds
-		tileOrigin.x -= 6;
-		tileOrigin.y -= 6;
+		let padding = 10;
+		tileOrigin.x -= padding / Camera.zoom;
+		tileOrigin.y -= padding / Camera.zoom;
 		tileOrigin = tileOrigin.clamp(0, Number.MAX_SAFE_INTEGER);
 
 		// overdraw to fill entire screen and rely on clipping
 		// should be more clever about how to perform this however
 		// let r = this.context.canvas.getBoundingClientRect();
-		let maxX = 32;
-		let maxY = 32;
+		let maxX = (padding + Math.floor(this.context.canvas.height / (World.tileHeight / 2) - 1)) / Camera.zoom;
+		let maxY = maxX;
 
 		let startTime =  new Date();
 		let total = 0;
@@ -309,6 +343,7 @@ export class SyndicateGame extends Game {
 							this.tileTree.insert(tile.treeNode);
 						}
 						total++;
+						tile.renderPass = this.renderPass;
 						tile.__clicked = false;
 					}
 				}
@@ -332,7 +367,18 @@ export class SyndicateGame extends Game {
 		this.processFrame();
 	}
 
+	set zoomLevel(newValue) {
+		Camera.zoom = newValue;
+		this.processFrame();
+	}
+
 	async setup(mapFile, tilemap) {
+
+
+		// expand to fill height of document
+		let html = document.documentElement;
+		let bounds = this.context.canvas.getBoundingClientRect();
+		this.context.canvas.height = html.clientHeight - bounds.top;
 
 		// load map from JSON
 		await fetch('./assets/'+mapFile)
@@ -372,12 +418,16 @@ export class SyndicateGame extends Game {
 
 		// setup camera
 		Camera.origin = new V2(1572, 1732); // start point for "Western Europe"
-		Camera.zoom = 1.0;
+		Camera.zoom = 2.0;
 
 		// don't animate since we update with the array keys
 		this.animationEnabled = false;
 
+		// disable image interpolation for zooming
+		this.context.imageSmoothingEnabled = false;
+
 		this.maxLevel = 12;
+		this.renderPass = 0;
 
 		this.start();
 	}
