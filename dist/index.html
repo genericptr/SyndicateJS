@@ -49,6 +49,11 @@
 			flex-grow: 1;
 			/*border: 1px solid green;*/
 		}
+		.warning {
+			color: red;
+			font-weight: bold;
+			display: none;
+		}
 	</style>
 	<!-- https://github.com/timohausmann/quadtree-js/ -->
 	<script src="quadtree.js"></script>
@@ -98,11 +103,12 @@
 		// hook up event listeners
 		document.querySelector('#load-map').addEventListener('click', loadMap);
 		document.querySelector('#max-level').addEventListener('input', maxLevelChanged);
-		
+		document.querySelector('#game-warnings').style.display = 'none';
+
 		let zoomCheckbox = document.querySelector('#zoom-2x');
 		zoomCheckbox.addEventListener('change', zoomCheckboxChanged);
 		zoomCheckbox.checked = true;
-		
+
 		loadMap();
 	</script>
 </head>
@@ -112,7 +118,8 @@
 			<section>
 				<nav class="nav-header">
 					<p class="header-item">Use W,A,S,D keys to scroll map or click on edges.</p>
-					<p class="header-item" id="render-stats">{ render stats }</p>
+					<p class="header-item" id="game-stats">{ render stats }</p>
+					<p class="header-item warning" id="game-warnings">{ warnings }</p>
 				</nav>
 				<table>
 					<tr columns="2">
