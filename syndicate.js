@@ -351,10 +351,10 @@ export class SyndicateGame extends Game {
 		}
 
 		let endTime = new Date();
-		let s = 'rendered '+total+' tiles in '+(endTime - startTime)+'ms';
+		let s = 'Rendered '+total+' tiles in '+(endTime - startTime)+'ms';
 
-		let p = document.querySelector('#render-stats');
-		p.textContent = s;
+		let element = document.querySelector('#game-stats');
+		element.textContent = s;
 		// console.log(s);
 	}
 
@@ -374,6 +374,14 @@ export class SyndicateGame extends Game {
 
 	async setup(mapFile, tilemap) {
 
+
+		// warn the user that the browser window is not 1.0 devicePixelRatio
+		let element = document.querySelector('#game-warnings');
+		element.style.display = 'none';
+		if (window.devicePixelRatio != 1) {
+			element.style.display = 'block';
+			element.innerHTML = '⚠️ Page zoom is '+(window.devicePixelRatio * 100)+'%';
+		}
 
 		// expand to fill height of document
 		let html = document.documentElement;

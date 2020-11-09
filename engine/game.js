@@ -138,10 +138,7 @@ export class Game {
 			touchstart: this._onTouchstart.bind(this),
 			touchend: this._onTouchend.bind(this),
 		}
-
-		// el.addEventListener("touchstart", handleStart, false);
-		// el.addEventListener("touchend", handleEnd, false);
-
+		
 		window.addEventListener('keydown', this.eventListeners.keydown);
 		window.addEventListener('keyup', this.eventListeners.keyup);
 		window.addEventListener('mousemove', this.eventListeners.mousemove);
