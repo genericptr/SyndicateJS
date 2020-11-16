@@ -266,7 +266,12 @@ export default class Map {
       }
       this.addObject(json.objects[i]);
     }
-    for (var i = 0; i < json.pedestrians.length; i++) this.addObject(json.pedestrians[i]);
+    for (var i = 0; i < json.pedestrians.length; i++) {
+      // TODO: for pedestrians we may need to find the ground
+      // beneath the current. the map data is being followed
+      // but still some peds are hovering in the air
+      this.addObject(json.pedestrians[i]);
+    }
     for (var i = 0; i < json.vehicles.length; i++) this.addObject(json.vehicles[i]);
 
   }

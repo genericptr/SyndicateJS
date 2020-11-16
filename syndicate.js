@@ -60,19 +60,19 @@ export class SyndicateGame extends Game {
 	onKeyPressed(keyCode) {
 		switch (keyCode) {
 			case 68: 
-				Camera.origin.x += World.tileDim;
+				Camera.origin.x += World.tileDim / Camera.zoom;
 				this.processFrame();
 				break;
 			case 65: 
-				Camera.origin.x -= World.tileDim;
+				Camera.origin.x -= World.tileDim / Camera.zoom;
 				this.processFrame();
 				break;
 			case 83: 
-				Camera.origin.y += World.tileDim;
+				Camera.origin.y += World.tileDim / Camera.zoom;
 				this.processFrame();
 				break;
 			case 87: 
-				Camera.origin.y -= World.tileDim;
+				Camera.origin.y -= World.tileDim / Camera.zoom;
 				this.processFrame();
 				break;
 		}
@@ -84,22 +84,22 @@ export class SyndicateGame extends Game {
 		// scroll by edge
 		if (y < 32 && y >= 0) {
 			console.log('move up');
-			Camera.origin.y -= World.tileDim;
+			Camera.origin.y -= World.tileDim / Camera.zoom;
 			this.processFrame();
 			return
 		} else if (x < 32 && x >= 0) {
 			console.log('move left');
-			Camera.origin.x -= World.tileDim;
+			Camera.origin.x -= World.tileDim / Camera.zoom;
 			this.processFrame();
 			return
 		} else if (x > this.context.canvas.width - 32 && x <= this.context.canvas.width) {
 			console.log('move right');
-			Camera.origin.x += World.tileDim;
+			Camera.origin.x += World.tileDim / Camera.zoom;
 			this.processFrame();
 			return
 		} else if (y > this.context.canvas.height - 32 && x <= this.context.canvas.height) {
 			console.log('move down');
-			Camera.origin.y += World.tileDim;
+			Camera.origin.y += World.tileDim / Camera.zoom;
 			this.processFrame();
 			return
 		}
@@ -296,12 +296,19 @@ export class SyndicateGame extends Game {
 		let maxX = (padding + Math.floor(this.context.canvas.height / (World.tileHeight / 2) - 1)) / Camera.zoom;
 		let maxY = maxX;
 
+		// clamp to map size
+		maxY = tileOrigin.y + maxY;
+		if (maxY > map.height) maxY = map.height;
+
+		maxX = tileOrigin.x + maxX;
+		if (maxX > map.width) maxX = map.width;
+
 		let startTime =  new Date();
 		let total = 0;
 
 		for (let z = 0; z < depth; z++) {
-			for (let y = tileOrigin.y; y < tileOrigin.y + maxY; y++) {
-				for (let x = tileOrigin.x; x < tileOrigin.x + maxX; x++) {
+			for (let y = tileOrigin.y; y < maxY; y++) {
+				for (let x = tileOrigin.x; x < maxX; x++) {
 					let tile = map.tileAt(x, y, z);
 					
 					// invalid tile
@@ -356,6 +363,7 @@ export class SyndicateGame extends Game {
 	}
 
 	async setup(mapFile, tilemap) {
+
 
 		// warn the user that the browser window is not 1.0 devicePixelRatio
 		let element = document.querySelector('#game-warnings');
@@ -412,7 +420,7 @@ export class SyndicateGame extends Game {
 
 		// setup camera
 		Camera.origin = new V2(1572-100, 1732-300); // start point for "Western Europe"
-		Camera.zoom = 2.0;
+		Camera.zoom = 2;
 
 		// don't animate since we update with the array keys
 		this.animationEnabled = false;
