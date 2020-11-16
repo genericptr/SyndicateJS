@@ -5,7 +5,7 @@
  * @author Ryan Joseph (November 2020)
  */
 
-export class Game {
+export default class Game {
 	
 	// static methods
 
