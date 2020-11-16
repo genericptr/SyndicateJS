@@ -25,22 +25,15 @@ export let Camera = {
   get viewOffset() {
     return new V2(this.origin.x - ((World.screenWidth / Camera.zoom) / 2), this.origin.y);
   },
-  applyViewTransform(pt) {
-    pt = pt.sub(this.viewOffset);
-    pt.x *= Camera.zoom;
-    pt.y *= Camera.zoom;
-    return pt;
-  },
   origin: new V2(0, 0),
   zoom: 1.0
 }
 
 function viewToScreen(x, y) {
-  let viewOffset = Camera.viewOffset;
-  return new V2(
-      (x * camera.zoom) - viewOffset.x, 
-      (y * camera.zoom) - viewOffset.y
-  );
+  let pt = new V2(x, y).sub(Camera.viewOffset);
+  pt.x *= Camera.zoom;
+  pt.y *= Camera.zoom;
+  return pt;
 }
 
 function screenToView(x, y) {
@@ -115,8 +108,10 @@ function boundingViewRect(x, y, z, width, height) {
 
 export {
   worldToTile,
+  tileToWorld,
   viewToWorld,
   worldToView,
+  screenToView,
+  viewToScreen,
   boundingViewRect,
-  screenToView
 }

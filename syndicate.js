@@ -4,95 +4,16 @@
  * @author Ryan Joseph (November 2020)
  */
 
-import { Game } from './engine/game.js';
+import Game from './engine/game.js';
+import Map from './map.js';
+import Sprites from './sprites.js';
 import { V2, V3, Rect } from './engine/vectorMath.js';
-import { World, Camera, worldToTile, viewToWorld, worldToView, screenToView, boundingViewRect } from './engine/world.js';
+import { World, Camera, worldToTile, tileToWorld, viewToWorld, worldToView, screenToView, viewToScreen, boundingViewRect } from './engine/world.js';
 
 /*
 	Assets generated from libSyndicate and original DOS data files:
 	http://icculus.org/libsyndicate/
 */
-
-// Map
-
-class Map {
-
-	tileIndex(x, y, z) {
-		return (x + y * this.width) + (z * this.width * this.height);
-	}
-
-	tileAt(x, y, z) {
-		return this.tiles[this.tileIndex(x, y, z)];
-	}
-
-	constructor(json) {
-		this.width = 128;
-		this.height = 96;
-		this.depth = this.maxLevel;   // TODO: search max z from tiles
-
-		// these are the "column" names as specified in the file format
-		this.columns = {
-			None: 0,
-			SlopeSN: 1,
-			SlopeNS: 2,
-			SlopeEW: 3,
-			SlopeWE: 4,
-			Ground: 5,
-			RoadSideEW: 6,
-			RoadSideWE: 7,
-			RoadSideSN: 8,
-			RoadSideNS: 9,
-			Wall: 10,
-			RoadCurve: 11,
-			HandrailLight: 12,
-			Roof: 13,
-			RoadPedCross: 14,
-			RoadMark: 15,
-			NbTypes: 16,
-		};
-
-		let tiles = json.data.tiles;
-		let columns = json.columns;
-
-		let x = 0;
-		let y = 0;
-		let z = 0;
-
-		let map = [];
-
-		for (let i = 0; i < tiles.length; i++) {
-
-			let tile = {
-				tileID: tiles[i],
-				column: columns[tiles[i]],
-				x: x,
-				y: y,
-				z: z,
-			};
-
-			// determine if the tile is solid or not
-			if (tile.column != this.columns.None && tile.column != this.columns.NbTypes) {
-				tile.solid = true;
-			}
-
-			map.push(tile);
-
-			x += 1;
-			if (x == this.width) {
-				x = 0;
-				y += 1;
-			}
-
-			if (y == this.height) {
-		    x = 0;
-		    y = 0;
-		    z += 1;
-			}
-		}
-
-		this.tiles = map;
-	}
-}
 
 // TileAtlas
 
@@ -183,8 +104,28 @@ export class SyndicateGame extends Game {
 			return
 		}
 
+		// find the tile under the mouse
+		let tile = this.findTileAtMouse(x, y);
+		if (tile) {
+			tile.__clicked = true;
+			console.log(tile.x+','+tile.y+','+tile.z);
+
+			// search up for tiles that have objects in them
+			// and print them out for debugging
+			for (let i = 0; i < 10; i++) {
+				let above = this.map.tileAt(tile.x, tile.y, tile.z + i);
+				if (above && above.objects.length > 0)
+					console.log(above.objects);
+			}
+
+			this.processFrame();
+		}
+	}
+
+	findTileAtMouse(x, y) {
 		let at = screenToView(x, y);
 		let mouseViewRect = new Rect(at.x, at.y, 1, 1);
+		let hit = null;
 
 		// search the quad tree for the mouse view rect
 		let result = this.tileTree.retrieve(mouseViewRect);
@@ -238,18 +179,21 @@ export class SyndicateGame extends Game {
 					continue;
 				}
 
-				// mark the node as clicked
-				node.tile.__clicked = true;
+				// return the tile from the node
+				hit = node.tile;
 				break;
 			}
 
-			this.processFrame();
+			// this.processFrame();
 		}
+
+		return hit;
 	}
 
 	render() {
 		let r = this.context.canvas.getBoundingClientRect();
-		this.context.clearRect(0, 0, r.width, r.height);
+		this.context.fillColor = 'black';
+		this.context.fillRect(0, 0, r.width, r.height);
 		this.renderPass += 1;
 		this.drawMap(this.map);
 	};
@@ -261,8 +205,7 @@ export class SyndicateGame extends Game {
 		let viewRect = boundingViewRect(worldPoint.x, worldPoint.y, worldPoint.z, atlas.tileWidth, atlas.tileHeight);
 	 
 	  // apply the camera transform
-	  // TODO: make applyViewTransform take a rect
-	  let origin = Camera.applyViewTransform(new V2(viewRect.x, viewRect.y));
+	  let origin = viewToScreen(viewRect.x, viewRect.y);
 	  let screenRect = new Rect(origin.x, origin.y, viewRect.width * Camera.zoom, viewRect.height * Camera.zoom);
 	  
 	  // canvas has drawing artifacts if the rect is fractional
@@ -301,8 +244,41 @@ export class SyndicateGame extends Game {
 		}
 	}
 
+	drawSprite(object, base) {
+
+		// determine vertical slice
+		let part = 0;
+		if (base > object.level) {
+			part = base - object.level;
+		}
+
+		let animationIndex = object.current_anim;
+
+		// TODO: set the first frame also as an ABSOLUTE frame index
+
+		this.sprites.setAnimation(animationIndex);
+
+		if (!this.sprites.isAnimationValid())
+			throw "animation invalid #"+animationIndex;
+
+		let sprite = this.sprites.currentFrame;
+		let worldPoint = tileToWorld(object.x, object.y, object.z);
+
+		worldPoint.x += object.offset.x;
+		worldPoint.y += object.offset.y;
+		worldPoint.z += object.offset.z;
+
+		let where = worldToView(worldPoint.x, worldPoint.y, worldPoint.z);
+		where = viewToScreen(where.x, where.y);
+
+		this.sprites.draw(this.context, where, Camera.zoom, sprite, part);
+	}
+
 	drawMap(map) {
 		let depth = this.maxLevel;
+		
+		// make sure map max depth still wins
+		if (depth > map.depth) depth = map.depth;
 
 		let tileOrigin = viewToWorld(Camera.origin.x, Camera.origin.y);
 		tileOrigin = worldToTile(tileOrigin.x, tileOrigin.y, 0);
@@ -327,25 +303,32 @@ export class SyndicateGame extends Game {
 			for (let y = tileOrigin.y; y < tileOrigin.y + maxY; y++) {
 				for (let x = tileOrigin.x; x < tileOrigin.x + maxX; x++) {
 					let tile = map.tileAt(x, y, z);
+					
+					// invalid tile
+					if (!tile) continue;
 
-					// the tile is not solid so we don't want to render
-					if (!tile.solid) continue;
+					// draw sprites
+					for (var i = 0; i < tile.objects.length; i++) this.drawSprite(tile.objects[i], z);
 
-					let viewRect = null;
-					if (viewRect = this.drawTile(this.context, tile, new V3(x * World.tileDim, y * World.tileDim, z * World.tileDepth), this.tileAtlas)) {
-						// add the tile to the quad tree
-						if (!tile.treeNode) {
-							// add a reference to the tile in the tree node
-							tile.treeNode = {	...viewRect, 
-																tile: tile,
-																sortIndex: map.tileIndex(x, y, z)
-															};
-							this.tileTree.insert(tile.treeNode);
+					// only render solid tiles
+					if (tile.solid) {
+						let viewRect = null;
+						if (viewRect = this.drawTile(this.context, tile, new V3(x * World.tileDim, y * World.tileDim, z * World.tileDepth), this.tileAtlas)) {
+							// add the tile to the quad tree
+							if (!tile.treeNode) {
+								// add a reference to the tile in the tree node
+								tile.treeNode = {	...viewRect, 
+																	tile: tile,
+																	sortIndex: map.tileIndex(x, y, z)
+																};
+								this.tileTree.insert(tile.treeNode);
+							}
+							total++;
+							tile.renderPass = this.renderPass;
+							tile.__clicked = false;
 						}
-						total++;
-						tile.renderPass = this.renderPass;
-						tile.__clicked = false;
 					}
+
 				}
 			}
 		}
@@ -374,7 +357,6 @@ export class SyndicateGame extends Game {
 
 	async setup(mapFile, tilemap) {
 
-
 		// warn the user that the browser window is not 1.0 devicePixelRatio
 		let element = document.querySelector('#game-warnings');
 		element.style.display = 'none';
@@ -388,24 +370,6 @@ export class SyndicateGame extends Game {
 		let bounds = this.context.canvas.getBoundingClientRect();
 		this.context.canvas.height = html.clientHeight - bounds.top;
 
-		// load map from JSON
-		await fetch('./assets/'+mapFile)
-		  .then(response => response.json())
-		  .then(json => {
-		  	console.log('loaded map');
-		  	this.map = new Map(json);
-		  	// get the tileset from the map
-		  	if (tilemap == 'default') {
-		  		// palette is the same as 4 in the original DOS game
-		  		if (json.data.palette == 5) 
-		  			json.data.palette = 4;
-		  		tilemap = 'tiles_'+json.data.palette+'.png';
-		  	}
-		  });
-
-		// load tile map
-		this.tileAtlas = new TileAtlas(await Game.loadImage('./assets/'+tilemap), 64, 48);
-
 		// setup world
 		let r = this.context.canvas.getBoundingClientRect();
 
@@ -414,6 +378,28 @@ export class SyndicateGame extends Game {
 		World.tileHeight = 32;
 		World.tileDepth = 16;
 		World.tileDim = 32;
+
+		// load sprites
+		this.sprites = await Sprites.loadFromFile('./assets/sprites');
+
+		// load map from JSON
+		await fetch('./assets/'+mapFile)
+		  .then(response => response.json())
+		  .then(json => {
+		  	console.log('loaded map');
+		  	this.map = new Map(json, this.sprites);
+		  	// get the tileset from the map
+		  	if (tilemap == 'default') {
+		  		// palette is the same as 4 in the original DOS game
+		  		if (json.palette == 5) 
+		  			json.palette = 4;
+		  		tilemap = 'tiles_'+json.palette+'.png';
+		  	}
+		  });
+
+
+		// load tile map
+		this.tileAtlas = new TileAtlas(await Game.loadImage('./assets/'+tilemap), 64, 48);
 
 		// setup tile quad tree for mouse picking
 		this.tileTree = new Quadtree({
@@ -425,7 +411,7 @@ export class SyndicateGame extends Game {
 		console.log(this.tileTree);
 
 		// setup camera
-		Camera.origin = new V2(1572, 1732); // start point for "Western Europe"
+		Camera.origin = new V2(1572-100, 1732-300); // start point for "Western Europe"
 		Camera.zoom = 2.0;
 
 		// don't animate since we update with the array keys
@@ -434,7 +420,7 @@ export class SyndicateGame extends Game {
 		// disable image interpolation for zooming
 		this.context.imageSmoothingEnabled = false;
 
-		this.maxLevel = 12;
+		this.maxLevel = this.map.depth;
 		this.renderPass = 0;
 
 		this.start();
