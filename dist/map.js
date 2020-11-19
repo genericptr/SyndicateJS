@@ -148,8 +148,8 @@ export default class Map {
       let tile = this.tileAt(object.x, object.y, object.level + i);
       // if this happens we need to add more vertical levels for padding
       if (!tile) {
-        console.log('*** invalid level '+(object.level + i)+' for object');
-        console.log(object);
+        // console.log('*** invalid level '+(object.level + i)+' for object');
+        // console.log(object);
         continue;
       }
       tile.objects.push(object);
@@ -185,6 +185,11 @@ export default class Map {
     this.width = 128;
     this.height = 96;
     this.depth = 15;   // TODO: search max z from tiles
+
+    this.minX = json.minX;
+    this.minY = json.minY;
+    this.maxX = json.maxX;   
+    this.maxY = json.maxY;   
 
     this.setup();
 
@@ -267,12 +272,17 @@ export default class Map {
       this.addObject(json.objects[i]);
     }
     for (var i = 0; i < json.pedestrians.length; i++) {
-      // TODO: for pedestrians we may need to find the ground
-      // beneath the current. the map data is being followed
-      // but still some peds are hovering in the air
+      // TODO: for pedestrians on slopes we need to add +1 for some reason
+      if (json.pedestrians[i].subZ > 0) {
+        json.pedestrians[i].z--;
+      }
       this.addObject(json.pedestrians[i]);
     }
     for (var i = 0; i < json.vehicles.length; i++) this.addObject(json.vehicles[i]);
+
+    // note: weapons are meant to be picked up by peds
+    // because there is no inventory in the peds data files  
+    // for (var i = 0; i < json.weapons.length; i++) this.addObject(json.weapons[i]);
 
   }
 }

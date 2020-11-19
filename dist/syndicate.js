@@ -54,25 +54,27 @@ class TileAtlas {
 	}
 }
 
+let scrollAmount = 32 * 3;
 
 export class SyndicateGame extends Game {
 
 	onKeyPressed(keyCode) {
+
 		switch (keyCode) {
 			case 68: 
-				Camera.origin.x += World.tileDim / Camera.zoom;
+				Camera.origin.x += scrollAmount / Camera.zoom;
 				this.processFrame();
 				break;
 			case 65: 
-				Camera.origin.x -= World.tileDim / Camera.zoom;
+				Camera.origin.x -= scrollAmount / Camera.zoom;
 				this.processFrame();
 				break;
 			case 83: 
-				Camera.origin.y += World.tileDim / Camera.zoom;
+				Camera.origin.y += scrollAmount / Camera.zoom;
 				this.processFrame();
 				break;
 			case 87: 
-				Camera.origin.y -= World.tileDim / Camera.zoom;
+				Camera.origin.y -= scrollAmount / Camera.zoom;
 				this.processFrame();
 				break;
 		}
@@ -80,26 +82,28 @@ export class SyndicateGame extends Game {
 
 	onMousedown(x, y) {
 
+		// mouse events are disabled
+		if (this.disableMouseEvents) return;
 
 		// scroll by edge
 		if (y < 32 && y >= 0) {
 			console.log('move up');
-			Camera.origin.y -= World.tileDim / Camera.zoom;
+			Camera.origin.y -= scrollAmount / Camera.zoom;
 			this.processFrame();
 			return
 		} else if (x < 32 && x >= 0) {
 			console.log('move left');
-			Camera.origin.x -= World.tileDim / Camera.zoom;
+			Camera.origin.x -= scrollAmount / Camera.zoom;
 			this.processFrame();
 			return
 		} else if (x > this.context.canvas.width - 32 && x <= this.context.canvas.width) {
 			console.log('move right');
-			Camera.origin.x += World.tileDim / Camera.zoom;
+			Camera.origin.x += scrollAmount / Camera.zoom;
 			this.processFrame();
 			return
 		} else if (y > this.context.canvas.height - 32 && x <= this.context.canvas.height) {
 			console.log('move down');
-			Camera.origin.y += World.tileDim / Camera.zoom;
+			Camera.origin.y += scrollAmount / Camera.zoom;
 			this.processFrame();
 			return
 		}
@@ -190,7 +194,78 @@ export class SyndicateGame extends Game {
 		return hit;
 	}
 
+	async renderMinimap(context, mapFile, callback = null) {
+		console.log('render '+mapFile);
+		this.renderingMinimap = true;
+
+		let savedContext = this.context;
+		let savedScreen = World.screenRect;
+		let savedZoom = Camera.zoom;
+		let savedOrigin = Camera.origin;
+		let savedMap = this.map;
+		let savedTileAtlas = this.tileAtlas;
+		let savedTileTree = this.tileTree;
+
+		let startTime = new Date();
+
+		// load the map to render
+		let { palette, map } = await this.loadMap('maps/'+mapFile+'.json');
+		let tileAtlas = new TileAtlas(await Game.loadImage('./assets/'+palette), 64, 48);
+		// console.log('finished '+mapFile);
+		// return;
+
+		this.tileAtlas = tileAtlas;
+		this.map = map;
+		this.tileTree = null;
+
+		let worldSize = new V2(
+			this.map.width * this.tileAtlas.tileWidth,
+			this.map.height * this.tileAtlas.tileHeight
+			);
+
+		// center over the middle of the map
+		let origin = {};
+		origin.x = (map.width / 2);
+		origin.y = (map.height / 2);
+		origin.x += 800;
+		origin.y -= 400;
+
+		this.context = context;
+
+		let r = this.context.canvas.getBoundingClientRect();
+		World.screenRect = new Rect(0, 0, r.width, r.height);
+
+		Camera.zoom = Math.min(context.canvas.width / worldSize.x, context.canvas.height / worldSize.y) * 2;
+		// console.log(Camera.zoom);
+
+		Camera.origin = origin;//new V2(1000, 1200); // start point for "Western Europe"
+
+		this.context.fillColor = 'black';
+		this.context.fillRect(0, 0, r.width, r.height);
+		this.renderPass += 1;
+		this.drawMap(this.map);
+
+
+		// restore
+		this.context = savedContext;
+		this.map = savedMap;
+		this.tileAtlas = savedTileAtlas
+		this.tileTree = savedTileTree;
+		World.screenRect = savedScreen;
+		Camera.zoom = savedZoom;
+		Camera.origin = savedOrigin;
+
+		if (callback) {
+			callback();
+		}
+
+		console.log('Rendered minimap in '+(new Date() - startTime)+'ms');
+		// window.requestAnimationFrame((t) => { this._mainLoop(t); });
+		this.renderingMinimap = false;
+	}
+
 	render() {
+		console.log('render');
 		let r = this.context.canvas.getBoundingClientRect();
 		this.context.fillColor = 'black';
 		this.context.fillRect(0, 0, r.width, r.height);
@@ -276,7 +351,7 @@ export class SyndicateGame extends Game {
 
 	drawMap(map) {
 		let depth = this.maxLevel;
-		
+
 		// make sure map max depth still wins
 		if (depth > map.depth) depth = map.depth;
 
@@ -303,7 +378,7 @@ export class SyndicateGame extends Game {
 		maxX = tileOrigin.x + maxX;
 		if (maxX > map.width) maxX = map.width;
 
-		let startTime =  new Date();
+		let startTime = new Date();
 		let total = 0;
 
 		for (let z = 0; z < depth; z++) {
@@ -322,7 +397,7 @@ export class SyndicateGame extends Game {
 						let viewRect = null;
 						if (viewRect = this.drawTile(this.context, tile, new V3(x * World.tileDim, y * World.tileDim, z * World.tileDepth), this.tileAtlas)) {
 							// add the tile to the quad tree
-							if (!tile.treeNode) {
+							if (!tile.treeNode && this.tileTree) {
 								// add a reference to the tile in the tree node
 								tile.treeNode = {	...viewRect, 
 																	tile: tile,
@@ -343,9 +418,11 @@ export class SyndicateGame extends Game {
 		let endTime = new Date();
 		let s = 'Rendered '+total+' tiles in '+(endTime - startTime)+'ms';
 
-		let element = document.querySelector('#game-stats');
-		element.textContent = s;
-		// console.log(s);
+		// print the stats to the UI
+		if (!this.renderingMinimap) {
+			let element = document.querySelector('#game-stats');
+			element.textContent = s;
+		}
 	}
 
 	get maxLevel() {
@@ -359,10 +436,38 @@ export class SyndicateGame extends Game {
 
 	set zoomLevel(newValue) {
 		Camera.zoom = newValue;
-		this.processFrame();
+		if (this.finishedLoading) this.processFrame();
 	}
 
-	async setup(mapFile, tilemap) {
+
+	async loadMap(mapFile, tilemap = 'default') {
+		let palette = null;
+		let map = null;
+
+		// load map from JSON
+		await fetch('./assets/'+mapFile)
+		  .then(response => response.json())
+		  .then(json => {
+		  	console.log('loaded map '+mapFile);
+		  	map = new Map(json, this.sprites);
+		  	// get the tileset from the map
+		  	if (tilemap == 'default') {
+		  		// palette is the same as 4 in the original DOS game
+		  		if (json.palette == 5) 
+		  			json.palette = 4;
+		  		// there is a mysterious palette 0 for China which isn't provided here
+		  		if (json.palette == 0) 
+		  			json.palette = 1;
+
+		  		// return the name of the palette tiles image
+		  		palette = 'tiles_'+json.palette+'.png';
+		  	}
+		  });
+
+		return { palette, map };
+	}
+
+	async setup(mapFile, tilemap = 'default') {
 
 
 		// warn the user that the browser window is not 1.0 devicePixelRatio
@@ -390,24 +495,12 @@ export class SyndicateGame extends Game {
 		// load sprites
 		this.sprites = await Sprites.loadFromFile('./assets/sprites');
 
-		// load map from JSON
-		await fetch('./assets/'+mapFile)
-		  .then(response => response.json())
-		  .then(json => {
-		  	console.log('loaded map');
-		  	this.map = new Map(json, this.sprites);
-		  	// get the tileset from the map
-		  	if (tilemap == 'default') {
-		  		// palette is the same as 4 in the original DOS game
-		  		if (json.palette == 5) 
-		  			json.palette = 4;
-		  		tilemap = 'tiles_'+json.palette+'.png';
-		  	}
-		  });
-
+		// load map
+		let { palette, map } = await this.loadMap(mapFile, tilemap);
+		this.map = map;
 
 		// load tile map
-		this.tileAtlas = new TileAtlas(await Game.loadImage('./assets/'+tilemap), 64, 48);
+		this.tileAtlas = new TileAtlas(await Game.loadImage('./assets/'+palette), 64, 48);
 
 		// setup tile quad tree for mouse picking
 		this.tileTree = new Quadtree({
@@ -416,11 +509,10 @@ export class SyndicateGame extends Game {
 		 	width: this.map.width * this.tileAtlas.tileWidth,
 		 	height: this.map.height * this.tileAtlas.tileHeight
 		 });
-		console.log(this.tileTree);
 
 		// setup camera
 		Camera.origin = new V2(1572-100, 1732-300); // start point for "Western Europe"
-		Camera.zoom = 2;
+		// Camera.zoom = 2;
 
 		// don't animate since we update with the array keys
 		this.animationEnabled = false;
@@ -430,6 +522,9 @@ export class SyndicateGame extends Game {
 
 		this.maxLevel = this.map.depth;
 		this.renderPass = 0;
+		this.disableMouseEvents = false;
+		this.finishedLoading = true;
+		this.renderingMinimap = false;
 
 		this.start();
 	}
