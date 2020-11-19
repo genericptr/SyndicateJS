@@ -4,6 +4,9 @@
  * This file is part of SyndicateJS
  * @license MIT
  * @author Ryan Joseph (November 2020)
+ *
+ * Credits:
+ * https://github.com/timohausmann/quadtree-js/
 -->
 
 <!DOCTYPE html>
@@ -12,112 +15,31 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Syndicate Tile Rendering (DOS 1993)</title>
-	<style>
-		html, body {
-			font-size: 14px;
-			font-family: 'Andale Mono', 'Courier New', Courier, monospace;
-			margin: 0px;
-			height: 100%;
-		}
-		section {
-			flex-grow: 1;
-		}
-		main {
-			width:  100%;
-			display: flex;
-			flex-direction: column;
-		}
-		nav {
-			display: flex;
-			flex-direction: row;
-			padding: 10px;
-			background: rgb(221, 221, 221);
-			/*border: 1px solid blue;*/
-		}
-		canvas {
-			width:  100%;
-			height:  100%;
-			/*border: 1px solid red;*/
-		}
-		.nav-header {
-			display: flex;
-			flex-direction: row;
-			/*border: 1px solid yellow;*/
-		}
-		.header-item {
-			margin: 0;
-			flex-grow: 1;
-			/*border: 1px solid green;*/
-		}
-		.warning {
-			color: red;
-			font-weight: bold;
-			display: none;
-		}
-	</style>
-	<!-- https://github.com/timohausmann/quadtree-js/ -->
-	<script src="quadtree.js"></script>
-	<script type="module">
-		console.log('loaded main script');
-		import { SyndicateGame } from './syndicate.js';
+	<link rel="stylesheet" href="css/main.css">
+	<link rel="stylesheet" href="css/minimap.css">
+	<script src="engine/quadtree.js"></script>
+	<script type="module" src="main.js"></script>
+	<script type="text/javascript">
+		function toggleNavbar() {
+			let nav = document.querySelector('nav');
 
-		let game = null;
-		let canvas = document.getElementById('ctx');
-		let context = canvas.getContext('2d');
+			let canvas = document.getElementById('ctx');
+			let html = document.documentElement;
 
-		var body = document.body,
-		    html = document.documentElement;
-
-		canvas.width = html.clientWidth;
-		canvas.height = 800;
-
-		function maxLevelChanged(input) {
-			console.log('max level changed: '+input.target.value);
-			if (game) 
-				game.maxLevel = input.target.value;
-		}
-
-		function zoomCheckboxChanged(input) {
-			console.log(input.target);
-			if (game) {
-				console.log(input.target.checked);
-				if (input.target.checked) {
-					game.zoomLevel = 2.0;
-				} else {
-					game.zoomLevel = 1.0;
-				}
+			if (nav.style.display == 'none') {
+				nav.style.display = 'block';
+				canvas.height = 800;
+			} else {
+				nav.style.display = 'none';
+				canvas.height = html.clientHeight;
 			}
 		}
-
-		function loadMap() {
-			let map = document.querySelector('#map');
-			let tileset = document.querySelector('#tileset');
-
-			console.log('change map '+map.options[map.selectedIndex].value+' tiles '+tileset.options[tileset.selectedIndex].value);
-
-			if (game) game.unload();
-
-			game = new SyndicateGame(context);
-			game.setup('maps/'+map.options[map.selectedIndex].textContent+'.json', tileset.options[tileset.selectedIndex].value);
-		}
-
-		// set the default map index
-		let map = document.querySelector('#map');
-		map.selectedIndex = 0;
-
-		// hook up event listeners
-		document.querySelector('#load-map').addEventListener('click', loadMap);
-		document.querySelector('#max-level').addEventListener('input', maxLevelChanged);
-		document.querySelector('#game-warnings').style.display = 'none';
-
-		let zoomCheckbox = document.querySelector('#zoom-2x');
-		zoomCheckbox.addEventListener('change', zoomCheckboxChanged);
-		zoomCheckbox.checked = true;
-
-		loadMap();
 	</script>
 </head>
 <body>
+	<div id="centerpoint">
+		<div id="minimap-container"></div>
+	</div>
 	<main>
 		<nav>
 			<section>
@@ -198,6 +120,12 @@
 						</td>
 					</tr>
 					<tr>
+						<td>Maps:</td>
+						<td>
+							<button id="show-maps">Show all</button>
+						</td>
+					</tr>
+					<tr>
 						<td>Z:</td>
 						<td>
 							<input type="range" min="1" max="16" value="16" class="slider" id="max-level">
@@ -209,6 +137,7 @@
 			</section>
 		</nav>
 		<canvas id="ctx" class="canvas"></canvas>
+		<!-- <button id="toggle-nav-button" onclick="toggleNavbar();">-</button> -->
 	</main>
 </body>
 </html>
